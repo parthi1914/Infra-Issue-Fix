@@ -1,0 +1,34 @@
+{
+  "Parameters": {
+    "Workstream": "edm",
+    "AppName": "customapps",
+    "Environment": "dev",
+    "CostCenter": "CC-12345",
+    "Owner": "edm-platform-team",
+
+    "VpcId": "vpc-07acc586ab2a9bab7",
+    "PublicSubnetIds": "subnet-0a1d5e877b6b9ac8c,subnet-0a198c407197ac822",
+    "PrivateSubnetIds": "subnet-04dded313515ae07a,subnet-01710df4ae8cb57c8",
+
+    "ContainerPort": 80,
+
+    "ArtifactoryUsername": "223145047",
+    "ArtifactoryPassword": "CHANGE_ME_AFTER_DEPLOYMENT",
+    "ArtifactoryUrl": "geaerospace.jfrog.io/streamlit-docker-local-dev",
+    "DockerHubUsername": "abdullahmamunge",
+    "DockerHubToken": "CHANGE_ME_AFTER_DEPLOYMENT",
+    "OIDCClientId": "av-edm-streamlit-app-launcher-dev-2",
+    "OIDCClientSecret": "CHANGE_ME_AFTER_DEPLOYMENT"
+  },
+  "Tags": {
+    "Environment": "dev",
+    "Workstream": "edm",
+    "AppName": "customapps",
+    "Project": "EDMCustomApps",
+    "CostCenter": "CC-12345",
+    "Owner": "edm-platform-team",
+    "ManagedBy": "CloudFormation",
+    "DeploymentMethod": "CodePipeline",
+    "Repository": "edm-customapps-platform-iac"
+  }
+}
