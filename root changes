@@ -1,0 +1,7 @@
+S3Stack:
+  Type: AWS::CloudFormation::Stack
+  Properties:
+    TemplateURL: s3/buckets.yml
+    Parameters:
+      Env: !Ref Environment
+      ProjectName: !Sub "${Workstream}-${AppName}"
