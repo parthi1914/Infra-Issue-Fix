@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  Root Stack - EDMCustomApps Infrastructure (S3 ONLY TEST VERSION)
+  Version: 3.0 TEST - Only includes S3Stack for testing
+
+Parameters:
+  Workstream:
+    Type: String
+    Default: "edm"
+  AppName:
+    Type: String
+    Default: "customapps"
+  Environment:
+    Type: String
+    Default: "dev"
+    AllowedValues: [dev, qa, uat, prod]
+  CostCenter:
+    Type: String
+    Default: "CC-12345"
+  Owner:
+    Type: String
+    Default: "edm-platform-team"
+
+Resources:
+  # ==========================================================================
+  # S3 STACK - ONLY RESOURCE FOR TESTING
+  # ==========================================================================
+  S3Stack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: s3/buckets.yml
+      Parameters:
+        Env: !Ref Environment
+        ProjectName: !Sub "${Workstream}-${AppName}"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Workstream}-${AppName}-s3-${Environment}"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Workstream
+          Value: !Ref Workstream
+        - Key: AppName
+          Value: !Ref AppName
+        - Key: CostCenter
+          Value: !Ref CostCenter
+        - Key: Owner
+          Value: !Ref Owner
+
+Outputs:
+  ArtifactsBucketName:
+    Description: "S3 Artifacts Bucket"
+    Value: !GetAtt S3Stack.Outputs.ArtifactsBucketName
+  
+  StackName:
+    Description: "Root Stack Name"
+    Value: !Ref AWS::StackName
+  
+  Environment:
+    Description: "Deployment Environment"
+    Value: !Ref Environment
