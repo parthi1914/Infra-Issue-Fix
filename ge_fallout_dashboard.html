@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asset & Diagnostic Data Observability</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --ge-navy: #0a1628;
+    --ge-blue: #003087;
+    --ge-blue-mid: #0057b8;
+    --ge-blue-light: #1a73e8;
+    --ge-teal: #00a3a1;
+    --ge-green: #00875a;
+    --ge-green-light: #e3fcef;
+    --ge-red: #c9372c;
+    --ge-red-light: #ffebe6;
+    --ge-amber: #e07b00;
+    --ge-amber-light: #fff7e6;
+    --ge-pending: #2d6cdf;
+    --ge-pending-light: #e8f0fe;
+    --ge-gray-50: #f8f9fb;
+    --ge-gray-100: #f0f2f5;
+    --ge-gray-200: #e1e5ec;
+    --ge-gray-300: #c8cfd9;
+    --ge-gray-500: #6b7a99;
+    --ge-gray-700: #3d4966;
+    --ge-gray-900: #1a2340;
+    --surface: #ffffff;
+    --border: #e1e5ec;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --radius: 6px;
+    --radius-lg: 10px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+    --transition: 0.18s ease;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--ge-gray-50); color: var(--ge-gray-900); font-size: 13px; line-height: 1.5; min-height: 100vh; }
+
+  /* HEADER */
+  .app-header {
+    background: var(--ge-navy);
+    padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+    border-bottom: 2px solid var(--ge-blue);
+  }
+  .header-logo { display: flex; align-items: center; gap: 12px; }
+  .header-logo .ge-mark {
+    width: 32px; height: 32px;
+    background: white; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: var(--ge-navy); letter-spacing: -0.5px;
+  }
+  .header-title { color: white; font-size: 15px; font-weight: 600; letter-spacing: 0.2px; }
+  .header-subtitle { color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .flow-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 4px;
+    font-size: 12px; font-weight: 500; cursor: pointer; border: none;
+    text-decoration: none;
+  }
+  .flow-btn.active { background: var(--ge-blue-mid); color: white; }
+  .flow-btn.secondary { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+  .flow-arrow { color: rgba(255,255,255,0.4); font-size: 16px; }
+
+  /* KPI BAR */
+  .kpi-bar {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; gap: 12px; align-items: center;
+  }
+  .kpi-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 16px; border-radius: var(--radius);
+    border: 1px solid var(--border);
+    min-width: 130px;
+  }
+  .kpi-icon {
+    width: 32px; height: 32px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    flex-shrink: 0;
+  }
+  .kpi-icon.total { background: #e8f0fe; color: var(--ge-blue-mid); }
+  .kpi-icon.pass { background: var(--ge-green-light); color: var(--ge-green); }
+  .kpi-icon.fail { background: var(--ge-red-light); color: var(--ge-red); }
+  .kpi-icon.pending { background: var(--ge-amber-light); color: var(--ge-amber); }
+  .kpi-label { font-size: 10px; font-weight: 500; color: var(--ge-gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 20px; font-weight: 700; color: var(--ge-gray-900); font-family: var(--mono); line-height: 1; }
+
+  /* MAIN TABS */
+  .main-tabs {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex; gap: 0;
+    overflow-x: auto;
+  }
+  .main-tab {
+    padding: 10px 16px;
+    font-size: 11.5px; font-weight: 500;
+    color: var(--ge-gray-500);
+    cursor: pointer; white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .main-tab:hover { color: var(--ge-blue-mid); }
+  .main-tab.active { color: var(--ge-blue-mid); border-bottom-color: var(--ge-blue-mid); font-weight: 600; }
+
+  /* CONTENT AREA */
+  .content-area { padding: 16px 24px; }
+
+  /* FILTER BAR */
+  .filter-bar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .filter-bar label { font-size: 11.5px; font-weight: 600; color: var(--ge-gray-500); text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+  .filter-bar input[type="date"] {
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 6px 10px; font-size: 12.5px; font-family: var(--mono);
+    color: var(--ge-gray-900); background: var(--ge-gray-50);
+    outline: none;
+  }
+  .filter-bar input[type="date"]:focus { border-color: var(--ge-blue-light); box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+  .filter-sep { color: var(--ge-gray-300); font-size: 13px; }
+  .btn-apply {
+    background: var(--ge-blue-mid); color: white;
+    border: none; border-radius: 4px;
+    padding: 7px 18px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; transition: var(--transition);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-apply:hover { background: var(--ge-blue); }
+  .filter-spacer { flex: 1; }
+  .freshness-badge {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11.5px; font-weight: 500; color: var(--ge-green);
+    background: var(--ge-green-light); padding: 4px 10px; border-radius: 20px;
+    border: 1px solid rgba(0,135,90,0.2);
+  }
+
+  /* PIPELINE + SUMMARY ROW — columns MUST match split-layout exactly */
+  .summary-row {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 12px;
+    margin-bottom: 0;        /* flush — no gap between summary-row and split-layout */
+    padding-bottom: 12px;
+  }
+
+  /* Left column: two sync cards stacked, each is a bordered box */
+  .sync-cards {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .sync-card {
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 2px;
+    border: 1px solid transparent;   /* keeps height consistent */
+    flex: 1;
+  }
+  .sync-card.in-sync  { background: var(--ge-green);  border-color: rgba(0,0,0,0.08); }
+  .sync-card.out-sync { background: var(--ge-red);    border-color: rgba(0,0,0,0.08); }
+  .sync-card-label { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: rgba(255,255,255,0.8); }
+  .sync-card-value { font-size: 28px; font-weight: 700; color: white; font-family: var(--mono); line-height: 1.1; }
+
+  /* Right column: pipeline card — same border style as detail-panel */
+  .pipeline-card {
+    background: white; border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .pipeline-label { font-size: 10.5px; font-weight: 600; color: var(--ge-gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+  .pipeline-steps {
+    display: flex; align-items: center; gap: 0;
+  }
+  .pipe-step {
+    flex: 1;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 8px;
+    font-size: 12px; font-weight: 600;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
+    cursor: pointer; transition: filter var(--transition);
+    flex-direction: column; gap: 2px;
+    min-width: 0;
+  }
+  .pipe-step:first-child { clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%); }
+  .pipe-step:hover { filter: brightness(1.08); }
+  .pipe-step.pass { background: var(--ge-green); color: white; }
+  .pipe-step.fail { background: var(--ge-red); color: white; }
+  .pipe-step.pending { background: var(--ge-pending); color: white; }
+  .pipe-step-name { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; }
+  .pipe-step-status { font-size: 10px; font-weight: 500; opacity: 0.85; }
+
+  /* MAIN SPLIT LAYOUT — columns MUST stay in sync with .summary-row */
+  .split-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 12px;
+    min-height: calc(100vh - 310px);
+  }
+
+  /* ESN PANEL */
+  .esn-panel {
+    background: white; border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    display: flex; flex-direction: column;
+  }
+  .esn-panel-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--ge-gray-50);
+  }
+  .esn-panel-title { font-size: 11px; font-weight: 700; color: var(--ge-gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .esn-search {
+    position: relative;
+  }
+  .esn-search input {
+    width: 100%; padding: 7px 10px 7px 30px;
+    border: 1px solid var(--border); border-radius: 4px;
+    font-size: 12.5px; font-family: var(--font);
+    background: white; color: var(--ge-gray-900); outline: none;
+  }
+  .esn-search input:focus { border-color: var(--ge-blue-light); box-shadow: 0 0 0 2px rgba(26,115,232,0.12); }
+  .esn-search .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--ge-gray-500); font-size: 13px; }
+  .esn-filter-row { display: flex; gap: 4px; margin-top: 8px; }
+  .esn-filter-btn {
+    flex: 1; padding: 4px 0; border: 1px solid var(--border);
+    border-radius: 4px; background: white; font-size: 11px; font-weight: 500;
+    cursor: pointer; color: var(--ge-gray-500); transition: var(--transition);
+  }
+  .esn-filter-btn.active-all { border-color: var(--ge-blue-mid); background: var(--ge-pending-light); color: var(--ge-blue-mid); }
+  .esn-filter-btn.active-pass { border-color: var(--ge-green); background: var(--ge-green-light); color: var(--ge-green); }
+  .esn-filter-btn.active-fail { border-color: var(--ge-red); background: var(--ge-red-light); color: var(--ge-red); }
+
+  .esn-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .esn-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 5px; cursor: pointer;
+    transition: var(--transition); margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+  .esn-item:hover { background: var(--ge-gray-50); border-color: var(--border); }
+  .esn-item.selected { background: var(--ge-pending-light); border-color: var(--ge-blue-light); }
+  .esn-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .esn-dot.fail { background: var(--ge-red); }
+  .esn-dot.pass { background: var(--ge-green); }
+  .esn-dot.pending { background: var(--ge-amber); }
+  .esn-number { font-family: var(--mono); font-size: 12.5px; font-weight: 500; color: var(--ge-gray-900); flex: 1; }
+  .esn-badge { font-size: 9.5px; font-weight: 600; padding: 2px 6px; border-radius: 10px; }
+  .esn-badge.fail { background: var(--ge-red-light); color: var(--ge-red); }
+  .esn-badge.pass { background: var(--ge-green-light); color: var(--ge-green); }
+
+  .esn-pagination {
+    padding: 8px 14px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--ge-gray-50);
+  }
+  .esn-pagination span { font-size: 11px; color: var(--ge-gray-500); }
+  .page-btns { display: flex; gap: 4px; }
+  .page-btn {
+    width: 24px; height: 24px; border-radius: 4px;
+    border: 1px solid var(--border); background: white;
+    font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--ge-gray-700); transition: var(--transition);
+  }
+  .page-btn:hover { background: var(--ge-pending-light); border-color: var(--ge-blue-light); color: var(--ge-blue-mid); }
+
+  /* DETAIL PANEL */
+  .detail-panel {
+    background: white; border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    display: flex; flex-direction: column;
+  }
+  .detail-header {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    background: var(--ge-gray-50);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .detail-esn-badge {
+    font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--ge-gray-900);
+  }
+  .detail-esn-badge .esn-label { font-size: 10px; font-weight: 500; color: var(--ge-gray-500); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 1px; }
+  .detail-status-row { display: flex; gap: 6px; flex: 1; }
+  .sys-status-pill {
+    display: flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .sys-status-pill.pass { background: var(--ge-green-light); color: var(--ge-green); border-color: rgba(0,135,90,0.2); }
+  .sys-status-pill.fail { background: var(--ge-red-light); color: var(--ge-red); border-color: rgba(201,55,44,0.2); }
+  .sys-status-pill.pending { background: var(--ge-pending-light); color: var(--ge-pending); border-color: rgba(45,108,223,0.2); }
+  .sys-status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* SUB TABS */
+  .sub-tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    background: white;
+    overflow-x: auto;
+  }
+  .sub-tab {
+    padding: 9px 14px;
+    font-size: 12px; font-weight: 500;
+    color: var(--ge-gray-500);
+    cursor: pointer; white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .sub-tab:hover { color: var(--ge-blue-mid); }
+  .sub-tab.active { color: var(--ge-blue-mid); border-bottom-color: var(--ge-blue-mid); font-weight: 600; }
+  .sub-tab .tab-badge {
+    background: var(--ge-red); color: white;
+    font-size: 9px; padding: 1px 5px; border-radius: 8px; font-weight: 700;
+  }
+
+  .detail-content { flex: 1; overflow-y: auto; padding: 16px; }
+
+  /* DATA ELEMENTS MATRIX */
+  .matrix-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .matrix-table th {
+    background: var(--ge-navy); color: white;
+    padding: 9px 12px; text-align: left;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+    position: sticky; top: 0; z-index: 2;
+  }
+  .matrix-table th.sys-header { background: var(--ge-blue-mid); text-align: center; }
+  .matrix-table td {
+    padding: 7px 12px; border-bottom: 1px solid var(--ge-gray-100);
+    vertical-align: middle;
+  }
+  .matrix-table tr:hover td { background: var(--ge-gray-50); }
+  .matrix-table td.property-col { font-weight: 500; color: var(--ge-gray-700); }
+  .matrix-table td.esn-col { font-family: var(--mono); font-weight: 600; color: var(--ge-gray-900); }
+  .cell-value { font-family: var(--mono); font-size: 11px; }
+  .cell-status {
+    font-size: 10px; font-weight: 600; padding: 1px 6px;
+    border-radius: 3px; display: inline-block; margin-top: 2px;
+  }
+  .cell-status.pass { background: var(--ge-green-light); color: var(--ge-green); }
+  .cell-status.fail { background: var(--ge-red-light); color: var(--ge-red); }
+  .cell-null { color: var(--ge-gray-500); font-style: italic; font-size: 11px; }
+  .cell-tbd { color: var(--ge-amber); font-weight: 600; font-size: 11px; }
+  .cell-na { color: var(--ge-gray-500); font-size: 11px; }
+  .cell-pending { color: var(--ge-gray-400); font-size: 18px; text-align: center; }
+
+  /* FAILED ELEMENTS TABLE */
+  .failed-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .failed-count { font-size: 13px; font-weight: 600; color: var(--ge-gray-700); }
+  .failed-count span { color: var(--ge-red); font-weight: 700; }
+  .failed-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .failed-table th {
+    background: var(--ge-gray-100); color: var(--ge-gray-700);
+    padding: 8px 12px; text-align: left;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+    border-bottom: 2px solid var(--border);
+  }
+  .failed-table td { padding: 7px 12px; border-bottom: 1px solid var(--ge-gray-100); vertical-align: middle; }
+  .failed-table tr:hover td { background: var(--ge-red-light); }
+  .failed-table td:first-child { font-family: var(--mono); font-weight: 600; }
+  .reason-pill {
+    font-size: 10.5px; padding: 2px 8px; border-radius: 3px;
+    font-weight: 600; background: var(--ge-red-light); color: var(--ge-red);
+    white-space: nowrap;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 48px 24px; color: var(--ge-gray-500);
+    background: var(--ge-amber-light); border: 1px solid rgba(224,123,0,0.2);
+    border-radius: var(--radius); margin: 16px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
+  .empty-msg { font-size: 13px; font-weight: 500; color: var(--ge-amber); }
+  .empty-hint { font-size: 11.5px; color: var(--ge-gray-500); margin-top: 4px; }
+
+  /* NO ESN SELECTED */
+  .no-esn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex: 1; color: var(--ge-gray-400); gap: 8px;
+  }
+  .no-esn-icon { font-size: 36px; opacity: 0.3; }
+  .no-esn-text { font-size: 13px; }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 16px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ge-gray-500); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* LOADING */
+  .loading-bar {
+    height: 2px; background: var(--ge-gray-100);
+    border-radius: 2px; overflow: hidden; margin-bottom: 12px;
+  }
+  .loading-bar .progress {
+    height: 100%; background: linear-gradient(90deg, var(--ge-blue-mid), var(--ge-teal));
+    width: 0%; transition: width 0.6s ease;
+    border-radius: 2px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--ge-gray-300); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ge-gray-500); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* system summary in detail header */
+  .detail-meta { display: flex; flex-direction: column; gap: 4px; }
+  .detail-meta-row { display: flex; align-items: center; gap: 8px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="header-logo">
+    <div class="ge-mark">GE</div>
+    <div>
+      <div class="header-title">Asset & Diagnostic Data Observability</div>
+      <div class="header-subtitle">Enterprise Data Management — GE Aerospace</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-right:4px;">End-to-End Data Flow</span>
+    <a class="flow-btn active">⊙ Asset</a>
+    <span class="flow-arrow">→</span>
+    <a class="flow-btn secondary">+ Flight</a>
+  </div>
+</div>
+
+<!-- KPI BAR -->
+<div class="kpi-bar">
+  <div class="kpi-card">
+    <div class="kpi-icon total">⚙</div>
+    <div>
+      <div class="kpi-label">Total Systems</div>
+      <div class="kpi-value" id="kpi-total">—</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon pass">✓</div>
+    <div>
+      <div class="kpi-label">Pass</div>
+      <div class="kpi-value" id="kpi-pass">—</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon fail">✗</div>
+    <div>
+      <div class="kpi-label">Fail</div>
+      <div class="kpi-value" id="kpi-fail">—</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon pending">⏱</div>
+    <div>
+      <div class="kpi-label">Pending</div>
+      <div class="kpi-value" id="kpi-pending">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN TABS -->
+<div class="main-tabs">
+  <div class="main-tab">System & Pipeline Health</div>
+  <div class="main-tab">New Integrations Overview</div>
+  <div class="main-tab">New Integrations Summary</div>
+  <div class="main-tab">Existing Integration Summary</div>
+  <div class="main-tab active">Existing Integrations Fallout</div>
+  <div class="main-tab">AI Data Insights</div>
+  <div class="main-tab">Pipeline Monitor</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content-area">
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <label>Last Update From</label>
+    <input type="date" id="date-from" value="2026-03-11">
+    <span class="filter-sep">→</span>
+    <label>Last Update To</label>
+    <input type="date" id="date-to" value="2026-03-14">
+    <button class="btn-apply" onclick="applyFilter()">🔍 Apply</button>
+    <div class="filter-spacer"></div>
+    <div class="freshness-badge" id="freshness-badge" style="display:none;">✓ Freshness: OK</div>
+  </div>
+
+  <!-- LOADING BAR -->
+  <div class="loading-bar"><div class="progress" id="load-bar"></div></div>
+
+  <!-- UNIFIED ALIGNMENT WRAPPER: summary + split share same column grid -->
+  <div id="main-grid" style="display:none;">
+
+  <!-- SUMMARY ROW -->
+  <div class="summary-row" id="summary-row">
+    <div class="sync-cards">
+      <div class="sync-card in-sync">
+        <div class="sync-card-label">Assets in Sync</div>
+        <div class="sync-card-value" id="val-insync">0</div>
+      </div>
+      <div class="sync-card out-sync">
+        <div class="sync-card-label">Assets Out of Sync</div>
+        <div class="sync-card-value" id="val-outsync">580</div>
+      </div>
+    </div>
+    <div class="pipeline-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="pipeline-label">Integration Pipeline Status</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ge-green);"></div>Pass</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ge-red);"></div>Fail</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ge-pending);"></div>Pending</div>
+        </div>
+      </div>
+      <div class="pipeline-steps">
+        <div class="pipe-step pass" onclick="filterBySystem('IFS')">
+          <div class="pipe-step-name">IFS</div>
+          <div class="pipe-step-status">Pass</div>
+        </div>
+        <div class="pipe-step pass" onclick="filterBySystem('1FA')">
+          <div class="pipe-step-name">1FA</div>
+          <div class="pipe-step-status">Pass</div>
+        </div>
+        <div class="pipe-step fail" onclick="filterBySystem('1FDI')">
+          <div class="pipe-step-name">1FDI</div>
+          <div class="pipe-step-status">Fail</div>
+        </div>
+        <div class="pipe-step pending" onclick="filterBySystem('PHM')">
+          <div class="pipe-step-name">PHM</div>
+          <div class="pipe-step-status">Pending</div>
+        </div>
+        <div class="pipe-step pending" onclick="filterBySystem('FMX')">
+          <div class="pipe-step-name">FMX</div>
+          <div class="pipe-step-status">Pending</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPLIT LAYOUT -->
+  <div class="split-layout" id="split-layout">
+
+    <!-- ESN PANEL -->
+    <div class="esn-panel">
+      <div class="esn-panel-header">
+        <div class="esn-panel-title">Engine Serial Numbers</div>
+        <div class="esn-search">
+          <span class="search-icon">🔍</span>
+          <input type="text" placeholder="Type ESN to filter..." id="esn-search" oninput="filterESN(this.value)">
+        </div>
+        <div class="esn-filter-row">
+          <button class="esn-filter-btn active-all" onclick="setESNFilter('all',this)">All</button>
+          <button class="esn-filter-btn" onclick="setESNFilter('pass',this)">Pass</button>
+          <button class="esn-filter-btn" onclick="setESNFilter('fail',this)">Fail</button>
+        </div>
+      </div>
+      <div class="esn-list" id="esn-list"></div>
+      <div class="esn-pagination">
+        <span id="esn-page-info">Page 1/29</span>
+        <div class="page-btns">
+          <button class="page-btn" onclick="changePage(-1)">◀</button>
+          <button class="page-btn" onclick="changePage(1)">▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAIL PANEL -->
+    <div class="detail-panel" id="detail-panel">
+      <div class="no-esn" id="no-esn-state">
+        <div class="no-esn-icon">🔎</div>
+        <div class="no-esn-text">Select an ESN from the list to view details</div>
+      </div>
+
+      <div id="esn-detail" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+        <!-- Detail Header -->
+        <div class="detail-header">
+          <div class="detail-meta">
+            <div class="detail-esn-badge">
+              <span class="esn-label">ESN</span>
+              <span id="detail-esn-num">—</span>
+            </div>
+          </div>
+          <div class="detail-status-row" id="detail-status-row">
+            <div class="sys-status-pill pass"><div class="dot"></div>IFS: Pass</div>
+            <div class="sys-status-pill pass"><div class="dot"></div>1FA: Pass</div>
+            <div class="sys-status-pill fail"><div class="dot"></div>1FDI: Fail</div>
+            <div class="sys-status-pill pending"><div class="dot"></div>PHM: Pending</div>
+            <div class="sys-status-pill pending"><div class="dot"></div>FMX: Pending</div>
+          </div>
+        </div>
+
+        <!-- Sub Tabs -->
+        <div class="sub-tabs">
+          <div class="sub-tab active" onclick="showSubTab('data-matrix',this)">📊 Data Elements Matrix</div>
+          <div class="sub-tab" onclick="showSubTab('failed-elements',this)">⚠ Failed Elements <span class="tab-badge" id="fail-count-badge">12</span></div>
+          <div class="sub-tab" onclick="showSubTab('ifs-detail',this)">IFS Detail</div>
+          <div class="sub-tab" onclick="showSubTab('1fa-detail',this)">1FA Detail</div>
+          <div class="sub-tab" onclick="showSubTab('1fdi-detail',this)">1FDI Detail</div>
+          <div class="sub-tab" onclick="showSubTab('timeline',this)">📅 Timeline</div>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="detail-content">
+
+          <!-- DATA ELEMENTS MATRIX -->
+          <div class="tab-content active" id="tab-data-matrix">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+              <div style="font-size:12px;color:var(--ge-gray-500);">Data Elements Matrix — <strong id="matrix-esn-label">1 ESN(s)</strong> — Hover cells to see values</div>
+              <div style="flex:1;"></div>
+              <label style="font-size:12px;color:var(--ge-gray-500);display:flex;align-items:center;gap:6px;">
+                <input type="radio" name="matrix-filter" value="all" checked onchange="filterMatrix(this.value)"> All
+              </label>
+              <label style="font-size:12px;color:var(--ge-green);display:flex;align-items:center;gap:6px;">
+                <input type="radio" name="matrix-filter" value="pass" onchange="filterMatrix(this.value)"> Pass
+              </label>
+              <label style="font-size:12px;color:var(--ge-red);display:flex;align-items:center;gap:6px;">
+                <input type="radio" name="matrix-filter" value="fail" onchange="filterMatrix(this.value)"> Fail
+              </label>
+            </div>
+            <div style="overflow:auto;max-height:calc(100vh - 480px);">
+              <table class="matrix-table" id="matrix-table">
+                <thead>
+                  <tr>
+                    <th style="min-width:80px;">ESN</th>
+                    <th style="min-width:180px;">Property</th>
+                    <th class="sys-header" style="min-width:60px;">IFS</th>
+                    <th class="sys-header" style="min-width:200px;">1FA</th>
+                    <th class="sys-header" style="min-width:60px;">1FDI</th>
+                    <th class="sys-header" style="min-width:60px;">PHM</th>
+                    <th class="sys-header" style="min-width:60px;">FMX</th>
+                    <th class="sys-header" style="min-width:180px;">Expected</th>
+                  </tr>
+                </thead>
+                <tbody id="matrix-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- FAILED ELEMENTS -->
+          <div class="tab-content" id="tab-failed-elements">
+            <div class="failed-header">
+              <div class="failed-count"><span id="failed-count-text">12</span> failed element(s)</div>
+            </div>
+            <div style="overflow:auto;max-height:calc(100vh - 440px);">
+              <table class="failed-table" id="failed-table">
+                <thead>
+                  <tr>
+                    <th>ESN</th>
+                    <th>Tail Number</th>
+                    <th>System</th>
+                    <th>Property</th>
+                    <th>Expected</th>
+                    <th>Actual</th>
+                    <th>Status</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="failed-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- IFS DETAIL -->
+          <div class="tab-content" id="tab-ifs-detail">
+            <div style="padding:24px;text-align:center;color:var(--ge-gray-500);">
+              <div style="font-size:32px;margin-bottom:8px;">✅</div>
+              <div style="font-size:14px;font-weight:600;color:var(--ge-green);">IFS Integration Passing</div>
+              <div style="font-size:12px;margin-top:4px;">All data elements validated successfully for this ESN.</div>
+            </div>
+          </div>
+
+          <!-- 1FA DETAIL -->
+          <div class="tab-content" id="tab-1fa-detail">
+            <div style="padding:24px;text-align:center;color:var(--ge-gray-500);">
+              <div style="font-size:32px;margin-bottom:8px;">✅</div>
+              <div style="font-size:14px;font-weight:600;color:var(--ge-green);">1FA Integration Passing</div>
+              <div style="font-size:12px;margin-top:4px;">All data elements validated successfully for this ESN.</div>
+            </div>
+          </div>
+
+          <!-- 1FDI DETAIL -->
+          <div class="tab-content" id="tab-1fdi-detail">
+            <div class="empty-state">
+              <div class="empty-icon">⚠</div>
+              <div class="empty-msg">1FDI Integration Failed</div>
+              <div class="empty-hint">No data returned for this ESN in 1FDI system. Check Data Elements for specific failures.</div>
+            </div>
+          </div>
+
+          <!-- TIMELINE -->
+          <div class="tab-content" id="tab-timeline">
+            <div style="padding:16px 0;">
+              <div style="font-size:12px;font-weight:600;color:var(--ge-gray-500);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:14px;">Integration Event Timeline</div>
+              <div id="timeline-events"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end split-layout -->
+  </div><!-- end main-grid -->
+</div><!-- end content-area -->
+
+<script>
+// DATA
+const DEMO_ESNS = [
+  { esn:'001002T', status:'fail', failCount:12 },
+  { esn:'002001F', status:'fail', failCount:8 },
+  { esn:'004001T', status:'fail', failCount:5 },
+  { esn:'004002T', status:'fail', failCount:3 },
+  { esn:'014003D', status:'fail', failCount:10 },
+  { esn:'014003T', status:'pass', failCount:0 },
+  { esn:'014004D', status:'fail', failCount:7 },
+  { esn:'424649',  status:'fail', failCount:4 },
+  { esn:'424702',  status:'fail', failCount:6 },
+  { esn:'517974',  status:'fail', failCount:2 },
+  { esn:'550512',  status:'fail', failCount:9 },
+  { esn:'550551',  status:'fail', failCount:1 },
+  { esn:'550588',  status:'fail', failCount:11 },
+  { esn:'550595',  status:'pass', failCount:0 },
+  { esn:'551001',  status:'fail', failCount:3 },
+  { esn:'551045',  status:'fail', failCount:5 },
+  { esn:'551099',  status:'pass', failCount:0 },
+  { esn:'552000',  status:'fail', failCount:8 },
+  { esn:'552011',  status:'fail', failCount:2 },
+  { esn:'553000',  status:'fail', failCount:6 },
+];
+
+const MATRIX_DATA = [
+  { property:'Aircraft Delivery Date', ifs:'--', fa_val:'NULL', fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'—' },
+  { property:'Aircraft Family',        ifs:'--', fa_val:'TBD',  fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'—' },
+  { property:'Aircraft Model',         ifs:'--', fa_val:'Z-137T,AT-300,AG-CAT,FU-24,L410-UVP', fa_status:'pass', fdi:'--', phm:'--', fmx:'--', expected:'Z-137T,AT-300,...' },
+  { property:'Aircraft Series',        ifs:'--', fa_val:'NA',   fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'—' },
+  { property:'Diagnostic Install Date',ifs:'--', fa_val:'2026-03-09', fa_status:'pass', fdi:'--', phm:'--', fmx:'--', expected:'2026-03-09' },
+  { property:'Diagnostic Tail',        ifs:'--', fa_val:'NULL', fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'—' },
+  { property:'ESN',                    ifs:'--', fa_val:'001002T', fa_status:'pass', fdi:'--', phm:'--', fmx:'--', expected:'001002T' },
+  { property:'Engine Family Model Series', ifs:'--', fa_val:'TBD', fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'M601' },
+  { property:'Engine Model',           ifs:'--', fa_val:'M601', fa_status:'pass', fdi:'--', phm:'--', fmx:'--', expected:'M601' },
+  { property:'Engine Position',        ifs:'--', fa_val:'NULL', fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'—' },
+  { property:'Installation Date',      ifs:'--', fa_val:'NULL', fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'—' },
+  { property:'Monitor',                ifs:'--', fa_val:'NA',   fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'—' },
+  { property:'N1 Modifier',            ifs:'--', fa_val:'NULL', fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'—' },
+  { property:'Operator Diag Code',     ifs:'--', fa_val:'NULL', fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'—' },
+  { property:'Tail Number Aircraft ID',ifs:'--', fa_val:'NULL', fa_status:'fail', fdi:'--', phm:'--', fmx:'--', expected:'—' },
+];
+
+const FAILED_DATA = [
+  { prop:'Diagnostic Tail',          actual:'NULL',    reason:'Value is missing' },
+  { prop:'Engine Position',          actual:'NULL',    reason:'Value is missing' },
+  { prop:'Installation Date',        actual:'NULL',    reason:'Value is missing' },
+  { prop:'N1 Modifier',              actual:'NULL',    reason:'Value is missing' },
+  { prop:'Monitor',                  actual:'NA',      reason:'Value is NA' },
+  { prop:'Operator Diagnostic Code', actual:'NULL',    reason:'Value is missing' },
+  { prop:'Tail Number Aircraft ID',  actual:'NULL',    reason:'Value is missing' },
+  { prop:'Engine Family Model Series',actual:'TBD',   reason:'Value is TBD' },
+  { prop:'Aircraft Delivery Date',   actual:'NULL',    reason:'Value is missing' },
+  { prop:'Aircraft Family',          actual:'TBD',     reason:'Value is TBD' },
+  { prop:'Aircraft Series',          actual:'NA',      reason:'Value is NA' },
+  { prop:'Diagnostic Tail',          actual:'NULL',    reason:'Value is missing' },
+];
+
+let currentESNFilter = 'all';
+let currentPage = 1;
+const PAGE_SIZE = 20;
+let filteredESNs = [...DEMO_ESNS];
+let selectedESN = null;
+
+function applyFilter() {
+  const bar = document.getElementById('load-bar');
+  bar.style.width = '0%';
+  document.getElementById('main-grid').style.display = 'none';
+  document.getElementById('freshness-badge').style.display = 'none';
+
+  setTimeout(() => { bar.style.width = '40%'; }, 50);
+  setTimeout(() => { bar.style.width = '80%'; }, 400);
+  setTimeout(() => {
+    bar.style.width = '100%';
+    document.getElementById('kpi-total').textContent = '580';
+    document.getElementById('kpi-pass').textContent = '17';
+    document.getElementById('kpi-fail').textContent = '563';
+    document.getElementById('kpi-pending').textContent = '0';
+    document.getElementById('main-grid').style.display = 'block';
+    document.getElementById('freshness-badge').style.display = 'flex';
+    renderESNList();
+    setTimeout(() => { bar.style.width = '0%'; bar.style.transition = 'none'; setTimeout(()=>bar.style.transition='width 0.6s ease',100); }, 600);
+  }, 900);
+}
+
+function renderESNList() {
+  filteredESNs = DEMO_ESNS.filter(e => {
+    const searchVal = document.getElementById('esn-search').value.toLowerCase();
+    if (searchVal && !e.esn.toLowerCase().includes(searchVal)) return false;
+    if (currentESNFilter === 'pass' && e.status !== 'pass') return false;
+    if (currentESNFilter === 'fail' && e.status !== 'fail') return false;
+    return true;
+  });
+  const totalPages = Math.ceil(filteredESNs.length / PAGE_SIZE);
+  document.getElementById('esn-page-info').textContent = `Page ${currentPage}/${Math.max(1,totalPages)}`;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filteredESNs.slice(start, start + PAGE_SIZE);
+
+  const list = document.getElementById('esn-list');
+  list.innerHTML = pageItems.map(e => `
+    <div class="esn-item ${selectedESN === e.esn ? 'selected' : ''}" onclick="selectESN('${e.esn}',${e.failCount})">
+      <div class="esn-dot ${e.status}"></div>
+      <div class="esn-number">${e.esn}</div>
+      ${e.failCount > 0 ? `<span class="esn-badge fail">${e.failCount}</span>` : `<span class="esn-badge pass">OK</span>`}
+    </div>
+  `).join('');
+}
+
+function selectESN(esn, failCount) {
+  selectedESN = esn;
+  renderESNList();
+  document.getElementById('no-esn-state').style.display = 'none';
+  const detail = document.getElementById('esn-detail');
+  detail.style.display = 'flex';
+  document.getElementById('detail-esn-num').textContent = esn;
+  document.getElementById('matrix-esn-label').textContent = `1 ESN(s) — ${esn}`;
+  document.getElementById('fail-count-badge').textContent = failCount;
+  document.getElementById('failed-count-text').textContent = failCount;
+  renderMatrix(esn);
+  renderFailed(esn);
+  renderTimeline(esn);
+}
+
+function renderMatrix(esn) {
+  const rows = MATRIX_DATA.map(row => {
+    const faDisplay = row.fa_status === 'pass'
+      ? `<div class="cell-value" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${row.fa_val}">${row.fa_val}</div><div class="cell-status pass">Pass</div>`
+      : row.fa_val === 'NULL'
+        ? `<div class="cell-null">NULL</div><div class="cell-status fail">Fail</div>`
+        : row.fa_val === 'TBD'
+          ? `<div class="cell-tbd">TBD</div><div class="cell-status fail">Fail</div>`
+          : row.fa_val === 'NA'
+            ? `<div class="cell-na">NA</div><div class="cell-status fail">Fail</div>`
+            : `<div>${row.fa_val}</div><div class="cell-status fail">Fail</div>`;
+    return `<tr data-status="${row.fa_status}">
+      <td class="esn-col">${esn}</td>
+      <td class="property-col">${row.property}</td>
+      <td style="text-align:center;color:var(--ge-gray-300);">—</td>
+      <td>${faDisplay}</td>
+      <td class="cell-pending">·</td>
+      <td class="cell-pending">·</td>
+      <td class="cell-pending">·</td>
+      <td style="font-size:11px;color:var(--ge-gray-600);font-family:var(--mono);">${row.expected}</td>
+    </tr>`;
+  });
+  document.getElementById('matrix-body').innerHTML = rows.join('');
+}
+
+function filterMatrix(val) {
+  const rows = document.querySelectorAll('#matrix-body tr');
+  rows.forEach(r => {
+    if (val === 'all') r.style.display = '';
+    else r.style.display = r.dataset.status === val ? '' : 'none';
+  });
+}
+
+function renderFailed(esn) {
+  const rows = FAILED_DATA.map(f => `
+    <tr>
+      <td>${esn}</td>
+      <td style="color:var(--ge-gray-400);">--</td>
+      <td style="font-weight:600;color:var(--ge-blue-mid);">1FA</td>
+      <td>${f.prop}</td>
+      <td style="color:var(--ge-gray-400);">—</td>
+      <td style="font-family:var(--mono);font-size:11.5px;color:var(--ge-red);">${f.actual}</td>
+      <td><span class="reason-pill">Fail</span></td>
+      <td>${f.reason}</td>
+    </tr>
+  `);
+  document.getElementById('failed-body').innerHTML = rows.join('');
+}
+
+function renderTimeline(esn) {
+  const events = [
+    { time:'2026-03-09 08:22', sys:'IFS',  event:'Asset record updated', status:'pass' },
+    { time:'2026-03-09 09:14', sys:'1FA',  event:'Integration sync triggered', status:'pass' },
+    { time:'2026-03-09 09:16', sys:'1FA',  event:'12 fields failed validation', status:'fail' },
+    { time:'2026-03-10 11:00', sys:'1FDI', event:'No data returned', status:'fail' },
+    { time:'2026-03-11 06:00', sys:'PHM',  event:'Awaiting data ingestion', status:'pending' },
+    { time:'2026-03-11 06:00', sys:'FMX',  event:'Awaiting data ingestion', status:'pending' },
+  ];
+  const colors = { pass:'var(--ge-green)', fail:'var(--ge-red)', pending:'var(--ge-amber)' };
+  document.getElementById('timeline-events').innerHTML = events.map(e => `
+    <div style="display:flex;gap:14px;margin-bottom:12px;align-items:flex-start;">
+      <div style="width:110px;font-size:10.5px;font-family:var(--mono);color:var(--ge-gray-500);flex-shrink:0;padding-top:1px;">${e.time}</div>
+      <div style="width:8px;height:8px;border-radius:50%;background:${colors[e.status]};margin-top:4px;flex-shrink:0;"></div>
+      <div>
+        <span style="font-size:11px;font-weight:700;color:var(--ge-blue-mid);">${e.sys}</span>
+        <span style="font-size:12px;color:var(--ge-gray-700);margin-left:8px;">${e.event}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showSubTab(id, el) {
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+function filterESN(val) {
+  currentPage = 1;
+  renderESNList();
+}
+
+function setESNFilter(f, btn) {
+  currentESNFilter = f;
+  document.querySelectorAll('.esn-filter-btn').forEach(b => {
+    b.className = 'esn-filter-btn';
+  });
+  btn.className = `esn-filter-btn active-${f}`;
+  currentPage = 1;
+  renderESNList();
+}
+
+function changePage(dir) {
+  const totalPages = Math.ceil(filteredESNs.length / PAGE_SIZE);
+  currentPage = Math.max(1, Math.min(totalPages, currentPage + dir));
+  renderESNList();
+}
+
+function filterBySystem(sys) {
+  console.log('Filter by system:', sys);
+}
+
+// Auto-apply on load for demo
+window.onload = () => setTimeout(applyFilter, 300);
+</script>
+</body>
+</html>

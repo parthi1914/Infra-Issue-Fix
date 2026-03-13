@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Existing Integrations Fallout</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --ge-navy:         #0a1628;
+    --ge-blue:         #003087;
+    --ge-blue-mid:     #0057b8;
+    --ge-blue-light:   #1a73e8;
+    --ge-green:        #00875a;
+    --ge-green-light:  #e3fcef;
+    --ge-red:          #c9372c;
+    --ge-red-light:    #ffebe6;
+    --ge-amber:        #e07b00;
+    --ge-amber-light:  #fff7e6;
+    --ge-pending:      #2d6cdf;
+    --ge-pending-light:#e8f0fe;
+    --ge-gray-50:      #f8f9fb;
+    --ge-gray-100:     #f0f2f5;
+    --ge-gray-300:     #c8cfd9;
+    --ge-gray-400:     #9aa3b8;
+    --ge-gray-500:     #6b7a99;
+    --ge-gray-600:     #4f5f80;
+    --ge-gray-700:     #3d4966;
+    --ge-gray-900:     #1a2340;
+    --border:          #e1e5ec;
+    --font:            'DM Sans', sans-serif;
+    --mono:            'JetBrains Mono', monospace;
+    --radius:          6px;
+    --shadow-sm:       0 1px 3px rgba(0,0,0,0.08);
+    --transition:      0.18s ease;
+
+    /* ── layout constants kept in one place ── */
+    --left-col:  260px;
+    --col-gap:   12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--ge-gray-50);
+    color: var(--ge-gray-900);
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 16px 24px 24px;
+  }
+
+  /* ════════════════════════════════════
+     SECTION LABEL
+  ════════════════════════════════════ */
+  .section-heading {
+    font-size: 11px; font-weight: 700;
+    color: var(--ge-gray-500);
+    text-transform: uppercase; letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+
+  /* ════════════════════════════════════
+     FILTER BAR
+  ════════════════════════════════════ */
+  .filter-bar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 11px 16px;
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .filter-bar label {
+    font-size: 11px; font-weight: 600;
+    color: var(--ge-gray-500);
+    text-transform: uppercase; letter-spacing: 0.4px;
+    white-space: nowrap;
+  }
+  .filter-bar input[type="date"] {
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 5px 10px; font-size: 12px; font-family: var(--mono);
+    color: var(--ge-gray-900); background: var(--ge-gray-50); outline: none;
+  }
+  .filter-bar input[type="date"]:focus {
+    border-color: var(--ge-blue-light);
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.14);
+  }
+  .filter-sep { color: var(--ge-gray-300); }
+  .btn-apply {
+    background: var(--ge-blue-mid); color: white;
+    border: none; border-radius: 4px;
+    padding: 6px 18px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: var(--transition);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .btn-apply:hover { background: var(--ge-blue); }
+  .spacer { flex: 1; }
+  .freshness-badge {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11.5px; font-weight: 500; color: var(--ge-green);
+    background: var(--ge-green-light); padding: 4px 10px;
+    border-radius: 20px; border: 1px solid rgba(0,135,90,0.2);
+  }
+
+  /* ════════════════════════════════════
+     LOADING BAR
+  ════════════════════════════════════ */
+  .loading-bar {
+    height: 2px; background: var(--ge-gray-100);
+    border-radius: 2px; overflow: hidden; margin-bottom: 12px;
+  }
+  .loading-bar .progress {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ge-blue-mid), #00a3a1);
+    width: 0%; transition: width 0.5s ease; border-radius: 2px;
+  }
+
+  /* ════════════════════════════════════
+     MAIN GRID  (summary row + split layout share same column widths)
+  ════════════════════════════════════ */
+  #main-grid { display: none; }
+
+  /* Both rows use identical column definition */
+  .summary-row,
+  .split-layout {
+    display: grid;
+    grid-template-columns: var(--left-col) 1fr;
+    gap: var(--col-gap);
+  }
+
+  .summary-row  { padding-bottom: var(--col-gap); }
+  .split-layout { min-height: calc(100vh - 290px); }
+
+  /* ── LEFT: sync cards ── */
+  .sync-cards { display: flex; flex-direction: column; gap: 8px; }
+  .sync-card {
+    flex: 1;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 3px;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .sync-card.in-sync  { background: var(--ge-green); }
+  .sync-card.out-sync { background: var(--ge-red); }
+  .sync-card-label {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+  }
+  .sync-card-value {
+    font-size: 30px; font-weight: 700;
+    color: white; font-family: var(--mono); line-height: 1.1;
+  }
+
+  /* ── RIGHT: pipeline card ── */
+  .pipeline-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .pipeline-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .pipeline-label {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ge-gray-500);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .legend { display: flex; gap: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ge-gray-500); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 2px; }
+
+  /* chevron pipeline steps */
+  .pipeline-steps { display: flex; align-items: stretch; }
+  .pipe-step {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2px; padding: 10px 6px;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    clip-path: polygon(0 0, calc(100% - 13px) 0, 100% 50%, calc(100% - 13px) 100%, 0 100%, 13px 50%);
+    transition: filter var(--transition);
+  }
+  .pipe-step:first-child {
+    clip-path: polygon(0 0, calc(100% - 13px) 0, 100% 50%, calc(100% - 13px) 100%, 0 100%);
+  }
+  .pipe-step:hover { filter: brightness(1.1); }
+  .pipe-step.pass    { background: var(--ge-green);   color: white; }
+  .pipe-step.fail    { background: var(--ge-red);     color: white; }
+  .pipe-step.pending { background: var(--ge-pending); color: white; }
+  .pipe-step-name   { font-size: 13px; font-weight: 700; }
+  .pipe-step-status { font-size: 10px; opacity: 0.85; }
+
+  /* ════════════════════════════════════
+     ESN PANEL  (left column of split-layout)
+  ════════════════════════════════════ */
+  .esn-panel {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .esn-panel-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--ge-gray-50);
+  }
+  .esn-panel-title {
+    font-size: 11px; font-weight: 700;
+    color: var(--ge-gray-500);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .esn-search { position: relative; }
+  .esn-search input {
+    width: 100%; padding: 7px 10px 7px 30px;
+    border: 1px solid var(--border); border-radius: 4px;
+    font-size: 12.5px; font-family: var(--font);
+    color: var(--ge-gray-900); background: white; outline: none;
+  }
+  .esn-search input:focus {
+    border-color: var(--ge-blue-light);
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.12);
+  }
+  .esn-search .s-icon {
+    position: absolute; left: 9px; top: 50%;
+    transform: translateY(-50%); color: var(--ge-gray-400); font-size: 12px;
+  }
+  .esn-filter-row { display: flex; gap: 4px; margin-top: 8px; }
+  .esn-filter-btn {
+    flex: 1; padding: 4px 0;
+    border: 1px solid var(--border); border-radius: 4px;
+    background: white; font-size: 11px; font-weight: 500;
+    cursor: pointer; color: var(--ge-gray-500);
+    transition: var(--transition);
+  }
+  .esn-filter-btn.a-all  { border-color: var(--ge-blue-mid);  background: var(--ge-pending-light); color: var(--ge-blue-mid); }
+  .esn-filter-btn.a-pass { border-color: var(--ge-green); background: var(--ge-green-light);   color: var(--ge-green); }
+  .esn-filter-btn.a-fail { border-color: var(--ge-red);   background: var(--ge-red-light);    color: var(--ge-red); }
+
+  .esn-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .esn-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 5px;
+    cursor: pointer; transition: var(--transition);
+    margin-bottom: 2px; border: 1px solid transparent;
+  }
+  .esn-item:hover   { background: var(--ge-gray-50); border-color: var(--border); }
+  .esn-item.selected { background: var(--ge-pending-light); border-color: var(--ge-blue-light); }
+  .esn-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .esn-dot.fail    { background: var(--ge-red); }
+  .esn-dot.pass    { background: var(--ge-green); }
+  .esn-number {
+    font-family: var(--mono); font-size: 12.5px; font-weight: 500;
+    color: var(--ge-gray-900); flex: 1;
+  }
+  .esn-badge {
+    font-size: 9.5px; font-weight: 700;
+    padding: 2px 6px; border-radius: 10px;
+  }
+  .esn-badge.fail { background: var(--ge-red-light);   color: var(--ge-red); }
+  .esn-badge.pass { background: var(--ge-green-light);  color: var(--ge-green); }
+
+  .esn-pagination {
+    padding: 8px 14px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--ge-gray-50);
+  }
+  .esn-pagination span { font-size: 11px; color: var(--ge-gray-500); }
+  .page-btns { display: flex; gap: 4px; }
+  .page-btn {
+    width: 24px; height: 24px; border-radius: 4px;
+    border: 1px solid var(--border); background: white;
+    font-size: 12px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ge-gray-700); transition: var(--transition);
+  }
+  .page-btn:hover { background: var(--ge-pending-light); border-color: var(--ge-blue-light); color: var(--ge-blue-mid); }
+
+  /* ════════════════════════════════════
+     DETAIL PANEL  (right column of split-layout)
+  ════════════════════════════════════ */
+  .detail-panel {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* no-selection state */
+  .no-esn {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--ge-gray-400); gap: 8px;
+  }
+  .no-esn-icon { font-size: 36px; opacity: 0.3; }
+  .no-esn-text { font-size: 13px; }
+
+  /* ── detail header ── */
+  .detail-header {
+    padding: 11px 16px; border-bottom: 1px solid var(--border);
+    background: var(--ge-gray-50);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .detail-esn-num {
+    font-family: var(--mono); font-size: 16px; font-weight: 700;
+    color: var(--ge-gray-900);
+  }
+  .detail-esn-label {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--ge-gray-500); text-transform: uppercase;
+    letter-spacing: 0.5px; display: block; margin-bottom: 1px;
+  }
+  .status-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sys-pill {
+    display: flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .sys-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .sys-pill.pass    { background: var(--ge-green-light);   color: var(--ge-green);   border-color: rgba(0,135,90,0.2); }
+  .sys-pill.fail    { background: var(--ge-red-light);     color: var(--ge-red);     border-color: rgba(201,55,44,0.2); }
+  .sys-pill.pending { background: var(--ge-pending-light); color: var(--ge-pending); border-color: rgba(45,108,223,0.2); }
+
+  /* ════════════════════════════════════
+     ENTERPRISE HORIZONTAL TAB STRIP
+     Inactive = tinted bg per identity
+     Active   = white + blue underline + elevated
+  ════════════════════════════════════ */
+
+  .sub-tabs {
+    display: flex;
+    background: #eef1f6;          /* cool slate tray — tabs sit inside it */
+    border-bottom: 2px solid #cdd3de;
+    padding: 6px 14px 0;
+    overflow-x: auto;
+    flex-shrink: 0;
+    gap: 2px;
+  }
+  .sub-tabs::-webkit-scrollbar { height: 0; }
+
+  /* ── base tab ── */
+  .sub-tab {
+    position: relative;
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 16px 9px;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+    border-radius: 5px 5px 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    margin-bottom: -2px;
+    transition: background 0.13s ease, color 0.13s ease, box-shadow 0.13s ease;
+    user-select: none;
+    letter-spacing: 0.1px;
+  }
+
+  /* ── INACTIVE colors — each tab has its own tinted bg ── */
+  .sub-tab[data-tab="matrix"] {
+    background: #dce8f9;
+    color: #1a4a8a;
+    border-color: #b8cff0;
+  }
+  .sub-tab[data-tab="failed"] {
+    background: #fde8e4;
+    color: #8b2116;
+    border-color: #f4b8b0;
+  }
+  .sub-tab[data-tab="ifs"] {
+    background: #d6f2e6;
+    color: #0a5c36;
+    border-color: #9fdbc3;
+  }
+  .sub-tab[data-tab="fa"] {
+    background: #dce8f9;
+    color: #1a3d8a;
+    border-color: #b8cff0;
+  }
+  .sub-tab[data-tab="fdi"] {
+    background: #fde9d6;
+    color: #7c2d0e;
+    border-color: #f4c49a;
+  }
+  .sub-tab[data-tab="timeline"] {
+    background: #ece6f8;
+    color: #4a1d8a;
+    border-color: #cbbef0;
+  }
+
+  /* hover — slightly lighter, add depth */
+  .sub-tab:hover { filter: brightness(0.96); box-shadow: 0 -1px 4px rgba(0,0,0,0.07); }
+
+  /* ── ACTIVE — white, elevated, blue underline ── */
+  .sub-tab.active {
+    background: #ffffff !important;
+    color: #0057b8 !important;
+    font-weight: 700;
+    border-color: #cdd3de #cdd3de #ffffff !important;
+    box-shadow: 0 -2px 0 0 #0057b8 inset;   /* top accent line */
+    filter: none;
+  }
+
+  /* icon chip */
+  .tab-icon {
+    width: 19px; height: 19px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 900; flex-shrink: 0;
+    transition: background 0.13s ease;
+  }
+
+  /* inactive icon — darker tint of tab bg */
+  .sub-tab[data-tab="matrix"]  .tab-icon { background: #b8cff0; color: #1a4a8a; }
+  .sub-tab[data-tab="failed"]  .tab-icon { background: #f4b8b0; color: #8b2116; }
+  .sub-tab[data-tab="ifs"]     .tab-icon { background: #9fdbc3; color: #0a5c36; }
+  .sub-tab[data-tab="fa"]      .tab-icon { background: #b8cff0; color: #1a3d8a; }
+  .sub-tab[data-tab="fdi"]     .tab-icon { background: #f4c49a; color: #7c2d0e; }
+  .sub-tab[data-tab="timeline"].tab-icon { background: #cbbef0; color: #4a1d8a; }
+
+  /* active icon — blue tint */
+  .sub-tab.active .tab-icon { background: #d4e6f9; color: #0057b8; }
+
+  /* failed badge */
+  .tab-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 17px; padding: 0 5px;
+    font-size: 10px; font-weight: 700; border-radius: 9px;
+    background: #c9372c; color: #ffffff; line-height: 1;
+  }
+  .sub-tab[data-tab="failed"]:not(.active) .tab-badge {
+    background: #8b2116; color: #fde8e4;
+  }
+
+  /* no visible separator — tabs already have distinct bg */
+  .tab-sep { display: none; }
+
+  /* ── tab content area ── */
+  .detail-body {
+    flex: 1; overflow-y: auto;
+    background: #ffffff;
+  }
+  .tab-pane { display: none; padding: 16px 18px; }
+  .tab-pane.active { display: block; }
+
+  /* ── DATA ELEMENTS MATRIX ── */
+  .matrix-toolbar {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  }
+  .matrix-toolbar span { font-size: 12px; color: var(--ge-gray-500); }
+  .radio-group { display: flex; gap: 10px; margin-left: auto; }
+  .radio-group label {
+    font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer;
+  }
+  .matrix-wrap { overflow: auto; max-height: calc(100vh - 500px); }
+  .matrix-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .matrix-table th {
+    background: var(--ge-navy); color: white;
+    padding: 9px 12px; text-align: left;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+    position: sticky; top: 0; z-index: 2;
+  }
+  .matrix-table th.sys-h { background: var(--ge-blue-mid); text-align: center; }
+  .matrix-table td {
+    padding: 7px 12px; border-bottom: 1px solid var(--ge-gray-100);
+    vertical-align: middle;
+  }
+  .matrix-table tr:hover td { background: var(--ge-gray-50); }
+  .matrix-table td.prop-col { font-weight: 500; color: var(--ge-gray-700); }
+  .matrix-table td.esn-col  { font-family: var(--mono); font-weight: 600; }
+  .cell-val   { font-family: var(--mono); font-size: 11px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cell-badge {
+    font-size: 10px; font-weight: 600; padding: 1px 6px;
+    border-radius: 3px; display: inline-block; margin-top: 2px;
+  }
+  .cell-badge.pass { background: var(--ge-green-light); color: var(--ge-green); }
+  .cell-badge.fail { background: var(--ge-red-light);   color: var(--ge-red); }
+  .cell-null    { color: var(--ge-gray-400); font-style: italic; font-size: 11px; }
+  .cell-tbd     { color: var(--ge-amber);   font-weight: 600; font-size: 11px; }
+  .cell-na      { color: var(--ge-gray-400); font-size: 11px; }
+  .cell-dash    { color: var(--ge-gray-300); text-align: center; font-size: 16px; }
+
+  /* ── FAILED ELEMENTS ── */
+  .failed-summary { font-size: 13px; font-weight: 600; color: var(--ge-gray-700); margin-bottom: 12px; }
+  .failed-summary em { color: var(--ge-red); font-style: normal; }
+  .failed-wrap { overflow: auto; max-height: calc(100vh - 460px); }
+  .failed-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .failed-table th {
+    background: var(--ge-gray-100); color: var(--ge-gray-700);
+    padding: 8px 12px; text-align: left;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+    border-bottom: 2px solid var(--border);
+    position: sticky; top: 0;
+  }
+  .failed-table td {
+    padding: 7px 12px; border-bottom: 1px solid var(--ge-gray-100);
+    vertical-align: middle;
+  }
+  .failed-table tr:hover td { background: var(--ge-red-light); }
+  .failed-table td:first-child { font-family: var(--mono); font-weight: 600; }
+  .reason-pill {
+    font-size: 10.5px; padding: 2px 8px; border-radius: 3px;
+    font-weight: 600; background: var(--ge-red-light); color: var(--ge-red);
+  }
+  .sys-tag { font-weight: 700; color: var(--ge-blue-mid); }
+
+  /* ── TIMELINE ── */
+  .tl-wrap { position: relative; padding-left: 32px; }
+  .tl-wrap::before {
+    content: ''; position: absolute;
+    left: 11px; top: 8px; bottom: 8px;
+    width: 1px; background: #d0d8e8;
+  }
+  .tl-item {
+    position: relative; margin-bottom: 16px;
+    display: flex; align-items: flex-start; gap: 0;
+  }
+  .tl-item:last-child { margin-bottom: 0; }
+  .tl-dot-wrap {
+    position: absolute; left: -32px; top: 3px;
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800; flex-shrink: 0;
+    border: 2px solid white;
+  }
+  .tl-dot-wrap.pass    { background: #00875a; color: white; box-shadow: 0 0 0 2px #b7dfbb; }
+  .tl-dot-wrap.fail    { background: #c9372c; color: white; box-shadow: 0 0 0 2px #f5b8b3; }
+  .tl-dot-wrap.pending { background: #6b7a99; color: white; box-shadow: 0 0 0 2px #c8cfd9; }
+  .tl-card {
+    flex: 1; border: 1px solid #e1e5ec; border-radius: 6px;
+    padding: 10px 14px; background: white;
+  }
+  .tl-card-top {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 3px;
+  }
+  .tl-sys-tag {
+    font-size: 11px; font-weight: 700; padding: 2px 8px;
+    border-radius: 3px; letter-spacing: 0.2px;
+  }
+  .tl-sys-tag.pass    { background: #e3fcef; color: #00875a; }
+  .tl-sys-tag.fail    { background: #ffebe6; color: #c9372c; }
+  .tl-sys-tag.pending { background: #f0f2f5; color: #6b7a99; }
+  .tl-time-str {
+    font-size: 10.5px; font-family: var(--mono);
+    color: #9aa3b8; margin-left: auto;
+  }
+  .tl-desc { font-size: 12.5px; color: #4f5f80; line-height: 1.4; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--ge-gray-300); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     FILTER BAR
+════════════════════════════════════════ -->
+<div class="filter-bar">
+  <label>Last Update From</label>
+  <input type="date" id="date-from" value="2026-03-11">
+  <span class="filter-sep">→</span>
+  <label>Last Update To</label>
+  <input type="date" id="date-to" value="2026-03-14">
+  <button class="btn-apply" onclick="applyFilter()">🔍 Apply</button>
+  <div class="spacer"></div>
+  <div class="freshness-badge" id="freshness" style="display:none;">✓ Freshness: OK</div>
+</div>
+
+<!-- loading indicator -->
+<div class="loading-bar"><div class="progress" id="prog"></div></div>
+
+<!-- ═══════════════════════════════════════
+     MAIN GRID  (hidden until Apply)
+════════════════════════════════════════ -->
+<div id="main-grid">
+
+  <!-- ── ROW 1: sync cards + pipeline ── -->
+  <div class="summary-row">
+
+    <!-- LEFT: Assets in Sync / Out of Sync -->
+    <div class="sync-cards">
+      <div class="sync-card in-sync">
+        <div class="sync-card-label">Assets in Sync</div>
+        <div class="sync-card-value" id="val-insync">0</div>
+      </div>
+      <div class="sync-card out-sync">
+        <div class="sync-card-label">Assets Out of Sync</div>
+        <div class="sync-card-value" id="val-outsync">580</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Integration Pipeline -->
+    <div class="pipeline-card">
+      <div class="pipeline-card-header">
+        <div class="pipeline-label">Integration Pipeline Status</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ge-green);"></div>Pass</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ge-red);"></div>Fail</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ge-pending);"></div>Pending</div>
+        </div>
+      </div>
+      <div class="pipeline-steps">
+        <div class="pipe-step pass"    onclick="pipeClick('IFS')">  <div class="pipe-step-name">IFS</div>  <div class="pipe-step-status">Pass</div>   </div>
+        <div class="pipe-step pass"    onclick="pipeClick('1FA')">  <div class="pipe-step-name">1FA</div>  <div class="pipe-step-status">Pass</div>   </div>
+        <div class="pipe-step fail"    onclick="pipeClick('1FDI')"> <div class="pipe-step-name">1FDI</div> <div class="pipe-step-status">Fail</div>   </div>
+        <div class="pipe-step pending" onclick="pipeClick('PHM')">  <div class="pipe-step-name">PHM</div>  <div class="pipe-step-status">Pending</div></div>
+        <div class="pipe-step pending" onclick="pipeClick('FMX')">  <div class="pipe-step-name">FMX</div>  <div class="pipe-step-status">Pending</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROW 2: ESN list + Detail panel ── -->
+  <div class="split-layout">
+
+    <!-- LEFT: ESN Panel -->
+    <div class="esn-panel">
+      <div class="esn-panel-header">
+        <div class="esn-panel-title">Engine Serial Numbers</div>
+        <div class="esn-search">
+          <span class="s-icon">🔍</span>
+          <input type="text" id="esn-search" placeholder="Type ESN to filter…" oninput="filterESN(this.value)">
+        </div>
+        <div class="esn-filter-row">
+          <button class="esn-filter-btn a-all"  onclick="setESNFilter('all',this)">All</button>
+          <button class="esn-filter-btn"         onclick="setESNFilter('pass',this)">Pass</button>
+          <button class="esn-filter-btn"         onclick="setESNFilter('fail',this)">Fail</button>
+        </div>
+      </div>
+      <div class="esn-list" id="esn-list"></div>
+      <div class="esn-pagination">
+        <span id="page-info">Page 1 / 29</span>
+        <div class="page-btns">
+          <button class="page-btn" onclick="changePage(-1)">◀</button>
+          <button class="page-btn" onclick="changePage(1)">▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Detail Panel -->
+    <div class="detail-panel" id="detail-panel">
+
+      <!-- no selection placeholder -->
+      <div class="no-esn" id="no-esn">
+        <div class="no-esn-icon">🔎</div>
+        <div class="no-esn-text">Select an ESN from the list to view details</div>
+      </div>
+
+      <!-- detail view (hidden until ESN selected) -->
+      <div id="esn-detail" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+
+        <!-- detail header -->
+        <div class="detail-header">
+          <div>
+            <span class="detail-esn-label">ESN</span>
+            <span class="detail-esn-num" id="d-esn">—</span>
+          </div>
+          <div class="status-pills">
+            <div class="sys-pill pass">   <div class="dot"></div>IFS: Pass</div>
+            <div class="sys-pill pass">   <div class="dot"></div>1FA: Pass</div>
+            <div class="sys-pill fail">   <div class="dot"></div>1FDI: Fail</div>
+            <div class="sys-pill pending"><div class="dot"></div>PHM: Pending</div>
+            <div class="sys-pill pending"><div class="dot"></div>FMX: Pending</div>
+          </div>
+        </div>
+
+        <!-- sub-tabs: enterprise horizontal strip -->
+        <div class="sub-tabs">
+          <div class="sub-tab active" data-tab="matrix" onclick="showTab('matrix',this)">
+            <span class="tab-icon">&#9646;</span>
+            Data Elements Matrix
+          </div>
+          <div class="tab-sep"></div>
+          <div class="sub-tab" data-tab="failed" onclick="showTab('failed',this)">
+            <span class="tab-icon">!</span>
+            Failed Elements
+            <span class="tab-badge" id="fail-badge">12</span>
+          </div>
+          <div class="tab-sep"></div>
+          <div class="sub-tab" data-tab="ifs" onclick="showTab('ifs',this)">
+            <span class="tab-icon">&#10003;</span>
+            IFS Detail
+          </div>
+          <div class="tab-sep"></div>
+          <div class="sub-tab" data-tab="fa" onclick="showTab('fa',this)">
+            <span class="tab-icon">&#10003;</span>
+            1FA Detail
+          </div>
+          <div class="tab-sep"></div>
+          <div class="sub-tab" data-tab="fdi" onclick="showTab('fdi',this)">
+            <span class="tab-icon">&#10005;</span>
+            1FDI Detail
+          </div>
+          <div class="tab-sep"></div>
+          <div class="sub-tab" data-tab="timeline" onclick="showTab('timeline',this)">
+            <span class="tab-icon">&#9679;</span>
+            Timeline
+          </div>
+        </div>
+
+        <!-- tab bodies -->
+        <div class="detail-body">
+
+          <!-- DATA ELEMENTS MATRIX -->
+          <div class="tab-pane active" id="tab-matrix">
+            <div class="matrix-toolbar">
+              <span>Data Elements Matrix — <strong id="mx-label">1 ESN(s)</strong> — Hover cells for full values</span>
+              <div class="radio-group">
+                <label style="color:var(--ge-gray-500);">
+                  <input type="radio" name="mf" value="all"  checked onchange="filterMatrix(this.value)"> All
+                </label>
+                <label style="color:var(--ge-green);">
+                  <input type="radio" name="mf" value="pass" onchange="filterMatrix(this.value)"> Pass
+                </label>
+                <label style="color:var(--ge-red);">
+                  <input type="radio" name="mf" value="fail" onchange="filterMatrix(this.value)"> Fail
+                </label>
+              </div>
+            </div>
+            <div class="matrix-wrap">
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th style="min-width:80px;">ESN</th>
+                    <th style="min-width:180px;">Property</th>
+                    <th class="sys-h" style="min-width:55px;">IFS</th>
+                    <th class="sys-h" style="min-width:190px;">1FA</th>
+                    <th class="sys-h" style="min-width:55px;">1FDI</th>
+                    <th class="sys-h" style="min-width:55px;">PHM</th>
+                    <th class="sys-h" style="min-width:55px;">FMX</th>
+                    <th class="sys-h" style="min-width:160px;">Expected</th>
+                  </tr>
+                </thead>
+                <tbody id="mx-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- FAILED ELEMENTS -->
+          <div class="tab-pane" id="tab-failed">
+            <div class="failed-summary"><em id="fail-count">12</em> failed element(s) for this ESN</div>
+            <div class="failed-wrap">
+              <table class="failed-table">
+                <thead>
+                  <tr>
+                    <th>ESN</th>
+                    <th>Tail #</th>
+                    <th>System</th>
+                    <th>Property</th>
+                    <th>Expected</th>
+                    <th>Actual</th>
+                    <th>Status</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="fail-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- IFS DETAIL -->
+          <div class="tab-pane" id="tab-ifs">
+            <!-- summary kpi row -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
+              <div style="border:1px solid #e1e5ec;border-radius:6px;padding:14px 16px;background:#fff;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Integration Status</div>
+                <div style="display:flex;align-items:center;gap:7px;">
+                  <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#00875a;flex-shrink:0;"></span>
+                  <span style="font-size:15px;font-weight:700;color:#1a2340;">Pass</span>
+                </div>
+              </div>
+              <div style="border:1px solid #e1e5ec;border-radius:6px;padding:14px 16px;background:#fff;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Fields Validated</div>
+                <div style="font-size:15px;font-weight:700;color:#1a2340;font-family:var(--mono);">8 / 8</div>
+              </div>
+              <div style="border:1px solid #e1e5ec;border-radius:6px;padding:14px 16px;background:#fff;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Last Sync</div>
+                <div style="font-size:13px;font-weight:600;color:#1a2340;font-family:var(--mono);">2026-03-09 08:22</div>
+              </div>
+            </div>
+            <!-- field table -->
+            <div style="border:1px solid #e1e5ec;border-radius:6px;overflow:hidden;">
+              <div style="padding:10px 14px;background:#f8f9fb;border-bottom:1px solid #e1e5ec;display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:11px;font-weight:700;color:#3d4966;text-transform:uppercase;letter-spacing:0.4px;">IFS Field Validation</span>
+                <span style="font-size:11px;color:#00875a;font-weight:600;">&#10003; All fields passed</span>
+              </div>
+              <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead>
+                  <tr style="background:#f8f9fb;">
+                    <th style="text-align:left;padding:8px 14px;color:#6b7a99;font-size:11px;font-weight:700;letter-spacing:0.3px;border-bottom:1px solid #e1e5ec;">Field</th>
+                    <th style="text-align:left;padding:8px 14px;color:#6b7a99;font-size:11px;font-weight:700;border-bottom:1px solid #e1e5ec;">Value</th>
+                    <th style="text-align:center;padding:8px 14px;color:#6b7a99;font-size:11px;font-weight:700;border-bottom:1px solid #e1e5ec;width:80px;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${[['ESN','001002T'],['Engine Model','M601'],['Install Date','2026-03-09'],['Serial Number','SN-88812'],['Fleet Code','FL-44'],['Operator','Operator A'],['Engine Family','LEAP-C1'],['Config','CFG-001']].map(([f,v],i)=>`
+                  <tr style="border-bottom:1px solid #f0f2f5;${i%2===1?'background:#fafbfc;':''}">
+                    <td style="padding:8px 14px;font-weight:500;color:#3d4966;">${f}</td>
+                    <td style="padding:8px 14px;font-family:var(--mono);font-size:11.5px;color:#1a2340;">${v}</td>
+                    <td style="padding:8px 14px;text-align:center;"><span style="display:inline-flex;align-items:center;gap:4px;background:#e3fcef;color:#00875a;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:3px;">&#10003; Pass</span></td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 1FA DETAIL -->
+          <div class="tab-pane" id="tab-fa">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
+              <div style="border:1px solid #e1e5ec;border-radius:6px;padding:14px 16px;background:#fff;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Integration Status</div>
+                <div style="display:flex;align-items:center;gap:7px;">
+                  <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#c9372c;flex-shrink:0;"></span>
+                  <span style="font-size:15px;font-weight:700;color:#1a2340;">Partial Fail</span>
+                </div>
+              </div>
+              <div style="border:1px solid #e1e5ec;border-radius:6px;padding:14px 16px;background:#fff;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Fields Passed / Total</div>
+                <div style="font-size:15px;font-weight:700;color:#1a2340;font-family:var(--mono);">3 / 15</div>
+              </div>
+              <div style="border:1px solid #e1e5ec;border-radius:6px;padding:14px 16px;background:#fff;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Last Sync</div>
+                <div style="font-size:13px;font-weight:600;color:#1a2340;font-family:var(--mono);">2026-03-09 09:16</div>
+              </div>
+            </div>
+            <!-- pass/fail breakdown -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+              <div style="border:1px solid #b7dfbb;border-radius:6px;padding:12px 14px;background:#f6fff7;text-align:center;">
+                <div style="font-size:24px;font-weight:800;color:#00875a;font-family:var(--mono);">3</div>
+                <div style="font-size:10px;font-weight:700;color:#00875a;text-transform:uppercase;letter-spacing:0.4px;margin-top:2px;">Passed</div>
+              </div>
+              <div style="border:1px solid #f5b8b3;border-radius:6px;padding:12px 14px;background:#fff8f7;text-align:center;">
+                <div style="font-size:24px;font-weight:800;color:#c9372c;font-family:var(--mono);">12</div>
+                <div style="font-size:10px;font-weight:700;color:#c9372c;text-transform:uppercase;letter-spacing:0.4px;margin-top:2px;">Failed</div>
+              </div>
+              <div style="border:1px solid #e1e5ec;border-radius:6px;padding:12px 14px;background:#f8f9fb;text-align:center;">
+                <div style="font-size:24px;font-weight:800;color:#6b7a99;font-family:var(--mono);">0</div>
+                <div style="font-size:10px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.4px;margin-top:2px;">Pending</div>
+              </div>
+            </div>
+            <!-- advisory note -->
+            <div style="border:1px solid #d0e4f9;border-left:3px solid #0057b8;border-radius:0 6px 6px 0;padding:11px 14px;background:#f0f7ff;font-size:12px;color:#3d4966;line-height:1.6;">
+              <strong style="color:#0057b8;">Advisory:</strong> 12 fields returned NULL or TBD values from the 1FA feed.
+              Verify aircraft registration data is fully populated in the source system before the next sync cycle.
+            </div>
+          </div>
+
+          <!-- 1FDI DETAIL -->
+          <div class="tab-pane" id="tab-fdi">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
+              <div style="border:1px solid #e1e5ec;border-radius:6px;padding:14px 16px;background:#fff;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Integration Status</div>
+                <div style="display:flex;align-items:center;gap:7px;">
+                  <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#c9372c;flex-shrink:0;"></span>
+                  <span style="font-size:15px;font-weight:700;color:#1a2340;">Failed</span>
+                </div>
+              </div>
+              <div style="border:1px solid #e1e5ec;border-radius:6px;padding:14px 16px;background:#fff;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Records Found</div>
+                <div style="font-size:15px;font-weight:700;color:#c9372c;font-family:var(--mono);">0</div>
+              </div>
+              <div style="border:1px solid #e1e5ec;border-radius:6px;padding:14px 16px;background:#fff;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Last Attempt</div>
+                <div style="font-size:13px;font-weight:600;color:#1a2340;font-family:var(--mono);">2026-03-10 11:00</div>
+              </div>
+            </div>
+            <!-- failure detail block -->
+            <div style="border:1px solid #e1e5ec;border-radius:6px;overflow:hidden;">
+              <div style="padding:10px 14px;background:#f8f9fb;border-bottom:1px solid #e1e5ec;">
+                <span style="font-size:11px;font-weight:700;color:#3d4966;text-transform:uppercase;letter-spacing:0.4px;">Failure Details</span>
+              </div>
+              <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                  <span style="flex-shrink:0;background:#ffebe6;color:#c9372c;font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;margin-top:1px;letter-spacing:0.3px;">ERROR</span>
+                  <span style="font-size:12.5px;color:#3d4966;line-height:1.5;">No records returned for this ESN from the 1FDI system. The upstream feed may be empty or the ESN is not yet registered.</span>
+                </div>
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                  <span style="flex-shrink:0;background:#fff3e0;color:#e07b00;font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;margin-top:1px;letter-spacing:0.3px;">ACTION</span>
+                  <span style="font-size:12.5px;color:#3d4966;line-height:1.5;">Verify the ESN is active in the 1FDI registration database and re-run after the next feed ingestion cycle.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TIMELINE -->
+          <div class="tab-pane" id="tab-timeline">
+            <div style="font-size:11px;font-weight:700;color:#3d4966;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #e1e5ec;">Integration Event Timeline</div>
+            <div class="tl-wrap" id="tl-body"></div>
+          </div>
+
+        </div><!-- /detail-body -->
+      </div><!-- /esn-detail -->
+    </div><!-- /detail-panel -->
+
+  </div><!-- /split-layout -->
+</div><!-- /main-grid -->
+
+<script>
+/* ════════════════════════════════════
+   STATIC DEMO DATA
+════════════════════════════════════ */
+const ESNS = [
+  {esn:'001002T',status:'fail',fails:12},{esn:'002001F',status:'fail',fails:8},
+  {esn:'004001T',status:'fail',fails:5},{esn:'004002T',status:'fail',fails:3},
+  {esn:'014003D',status:'fail',fails:10},{esn:'014003T',status:'pass',fails:0},
+  {esn:'014004D',status:'fail',fails:7},{esn:'424649', status:'fail',fails:4},
+  {esn:'424702', status:'fail',fails:6},{esn:'517974', status:'fail',fails:2},
+  {esn:'550512', status:'fail',fails:9},{esn:'550551', status:'fail',fails:1},
+  {esn:'550588', status:'fail',fails:11},{esn:'550595',status:'pass',fails:0},
+  {esn:'551001', status:'fail',fails:3},{esn:'551045', status:'fail',fails:5},
+  {esn:'551099', status:'pass',fails:0},{esn:'552000', status:'fail',fails:8},
+  {esn:'552011', status:'fail',fails:2},{esn:'553000', status:'fail',fails:6},
+];
+
+const MATRIX = [
+  {prop:'Aircraft Delivery Date',    faVal:'NULL',    faStatus:'fail', exp:'—'},
+  {prop:'Aircraft Family',           faVal:'TBD',     faStatus:'fail', exp:'—'},
+  {prop:'Aircraft Model',            faVal:'Z-137T,AT-300,AG-CAT,FU-24,L410-UVP', faStatus:'pass', exp:'Z-137T,AT-300,…'},
+  {prop:'Aircraft Series',           faVal:'NA',      faStatus:'fail', exp:'—'},
+  {prop:'Diagnostic Install Date',   faVal:'2026-03-09', faStatus:'pass', exp:'2026-03-09'},
+  {prop:'Diagnostic Tail',           faVal:'NULL',    faStatus:'fail', exp:'—'},
+  {prop:'ESN',                       faVal:'001002T', faStatus:'pass', exp:'001002T'},
+  {prop:'Engine Family Model Series',faVal:'TBD',     faStatus:'fail', exp:'M601'},
+  {prop:'Engine Model',              faVal:'M601',    faStatus:'pass', exp:'M601'},
+  {prop:'Engine Position',           faVal:'NULL',    faStatus:'fail', exp:'—'},
+  {prop:'Installation Date',         faVal:'NULL',    faStatus:'fail', exp:'—'},
+  {prop:'Monitor',                   faVal:'NA',      faStatus:'fail', exp:'—'},
+  {prop:'N1 Modifier',               faVal:'NULL',    faStatus:'fail', exp:'—'},
+  {prop:'Operator Diag Code',        faVal:'NULL',    faStatus:'fail', exp:'—'},
+  {prop:'Tail Number Aircraft ID',   faVal:'NULL',    faStatus:'fail', exp:'—'},
+];
+
+const FAILED = [
+  {prop:'Diagnostic Tail',           actual:'NULL', reason:'Value is missing'},
+  {prop:'Engine Position',           actual:'NULL', reason:'Value is missing'},
+  {prop:'Installation Date',         actual:'NULL', reason:'Value is missing'},
+  {prop:'N1 Modifier',               actual:'NULL', reason:'Value is missing'},
+  {prop:'Monitor',                   actual:'NA',   reason:'Value is NA'},
+  {prop:'Operator Diagnostic Code',  actual:'NULL', reason:'Value is missing'},
+  {prop:'Tail Number Aircraft ID',   actual:'NULL', reason:'Value is missing'},
+  {prop:'Engine Family Model Series',actual:'TBD',  reason:'Value is TBD'},
+  {prop:'Aircraft Delivery Date',    actual:'NULL', reason:'Value is missing'},
+  {prop:'Aircraft Family',           actual:'TBD',  reason:'Value is TBD'},
+  {prop:'Aircraft Series',           actual:'NA',   reason:'Value is NA'},
+  {prop:'Diagnostic Tail (dup)',      actual:'NULL', reason:'Value is missing'},
+];
+
+const TIMELINE_EVENTS = [
+  {time:'2026-03-09 08:22', sys:'IFS',  desc:'Asset record updated in IFS',           status:'pass'},
+  {time:'2026-03-09 09:14', sys:'1FA',  desc:'Integration sync triggered',             status:'pass'},
+  {time:'2026-03-09 09:16', sys:'1FA',  desc:'12 field(s) failed validation',          status:'fail'},
+  {time:'2026-03-10 11:00', sys:'1FDI', desc:'No data returned — upstream feed empty', status:'fail'},
+  {time:'2026-03-11 06:00', sys:'PHM',  desc:'Awaiting data ingestion',                status:'pending'},
+  {time:'2026-03-11 06:00', sys:'FMX',  desc:'Awaiting data ingestion',                status:'pending'},
+];
+
+/* ════════════════════════════════════
+   STATE
+════════════════════════════════════ */
+let esnFilter  = 'all';
+let esnSearch  = '';
+let page       = 1;
+const PAGE_SZ  = 20;
+let selectedESN = null;
+let filtered   = [...ESNS];
+
+/* ════════════════════════════════════
+   FILTER APPLY
+════════════════════════════════════ */
+function applyFilter() {
+  const prog = document.getElementById('prog');
+  prog.style.width = '0%';
+  document.getElementById('main-grid').style.display = 'none';
+  document.getElementById('freshness').style.display = 'none';
+
+  setTimeout(() => prog.style.width = '45%', 60);
+  setTimeout(() => prog.style.width = '85%', 500);
+  setTimeout(() => {
+    prog.style.width = '100%';
+    document.getElementById('val-insync').textContent  = '0';
+    document.getElementById('val-outsync').textContent = '580';
+    document.getElementById('main-grid').style.display = 'block';
+    document.getElementById('freshness').style.display = 'flex';
+    renderESN();
+    setTimeout(() => {
+      prog.style.transition = 'none';
+      prog.style.width = '0%';
+      setTimeout(() => prog.style.transition = 'width 0.5s ease', 80);
+    }, 500);
+  }, 1000);
+}
+
+/* ════════════════════════════════════
+   ESN LIST
+════════════════════════════════════ */
+function renderESN() {
+  filtered = ESNS.filter(e => {
+    if (esnSearch && !e.esn.toLowerCase().includes(esnSearch)) return false;
+    if (esnFilter === 'pass' && e.status !== 'pass') return false;
+    if (esnFilter === 'fail' && e.status !== 'fail') return false;
+    return true;
+  });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SZ));
+  page = Math.min(page, totalPages);
+  document.getElementById('page-info').textContent = `Page ${page} / ${totalPages}`;
+  const items = filtered.slice((page-1)*PAGE_SZ, page*PAGE_SZ);
+  document.getElementById('esn-list').innerHTML = items.map(e => `
+    <div class="esn-item ${selectedESN===e.esn?'selected':''}" onclick="selectESN('${e.esn}',${e.fails})">
+      <div class="esn-dot ${e.status}"></div>
+      <div class="esn-number">${e.esn}</div>
+      ${e.fails>0
+        ? `<span class="esn-badge fail">${e.fails}</span>`
+        : `<span class="esn-badge pass">OK</span>`}
+    </div>`).join('');
+}
+
+function filterESN(v) { esnSearch = v.toLowerCase(); page = 1; renderESN(); }
+function changePage(d) { page = Math.max(1, page+d); renderESN(); }
+
+function setESNFilter(f, btn) {
+  esnFilter = f;
+  document.querySelectorAll('.esn-filter-btn').forEach(b => b.className='esn-filter-btn');
+  btn.className = `esn-filter-btn a-${f}`;
+  page = 1; renderESN();
+}
+
+/* ════════════════════════════════════
+   ESN SELECTION → load detail
+════════════════════════════════════ */
+function selectESN(esn, fails) {
+  selectedESN = esn;
+  renderESN();
+  document.getElementById('no-esn').style.display = 'none';
+  const d = document.getElementById('esn-detail');
+  d.style.display = 'flex';
+  document.getElementById('d-esn').textContent    = esn;
+  document.getElementById('mx-label').textContent = `1 ESN(s) — ${esn}`;
+  document.getElementById('fail-badge').textContent = fails;
+  document.getElementById('fail-count').textContent = fails;
+  renderMatrix(esn);
+  renderFailed(esn);
+  renderTimeline();
+}
+
+/* ════════════════════════════════════
+   DATA ELEMENTS MATRIX
+════════════════════════════════════ */
+function renderMatrix(esn) {
+  document.getElementById('mx-body').innerHTML = MATRIX.map(row => {
+    let cell;
+    if (row.faStatus === 'pass') {
+      cell = `<div class="cell-val" title="${row.faVal}">${row.faVal}</div><span class="cell-badge pass">Pass</span>`;
+    } else {
+      const display = row.faVal === 'NULL' ? `<span class="cell-null">NULL</span>`
+                    : row.faVal === 'TBD'  ? `<span class="cell-tbd">TBD</span>`
+                    : row.faVal === 'NA'   ? `<span class="cell-na">NA</span>`
+                    : `<span class="cell-val">${row.faVal}</span>`;
+      cell = `${display}<br><span class="cell-badge fail">Fail</span>`;
+    }
+    return `<tr data-s="${row.faStatus}">
+      <td class="esn-col">${esn}</td>
+      <td class="prop-col">${row.prop}</td>
+      <td class="cell-dash">—</td>
+      <td>${cell}</td>
+      <td class="cell-dash">·</td>
+      <td class="cell-dash">·</td>
+      <td class="cell-dash">·</td>
+      <td style="font-size:11px;color:var(--ge-gray-600);font-family:var(--mono);">${row.exp}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterMatrix(val) {
+  document.querySelectorAll('#mx-body tr').forEach(r => {
+    r.style.display = val==='all' || r.dataset.s===val ? '' : 'none';
+  });
+}
+
+/* ════════════════════════════════════
+   FAILED ELEMENTS
+════════════════════════════════════ */
+function renderFailed(esn) {
+  document.getElementById('fail-body').innerHTML = FAILED.map(f => `
+    <tr>
+      <td>${esn}</td>
+      <td style="color:var(--ge-gray-400);">--</td>
+      <td><span class="sys-tag">1FA</span></td>
+      <td>${f.prop}</td>
+      <td style="color:var(--ge-gray-400);">—</td>
+      <td style="font-family:var(--mono);font-size:11.5px;color:var(--ge-red);">${f.actual}</td>
+      <td><span class="reason-pill">Fail</span></td>
+      <td>${f.reason}</td>
+    </tr>`).join('');
+}
+
+/* ════════════════════════════════════
+   TIMELINE
+════════════════════════════════════ */
+function renderTimeline() {
+  const ICONS = {pass:'✔', fail:'✖', pending:'⏱'};
+  document.getElementById('tl-body').innerHTML = TIMELINE_EVENTS.map(e => `
+    <div class="tl-item">
+      <div class="tl-dot-wrap ${e.status}">${ICONS[e.status]}</div>
+      <div class="tl-card ${e.status}">
+        <div class="tl-card-top">
+          <span class="tl-sys-tag ${e.status}">${e.sys}</span>
+          <span class="tl-time-str">${e.time}</span>
+        </div>
+        <div class="tl-desc">${e.desc}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════
+   SUB-TABS
+════════════════════════════════════ */
+function showTab(id, el) {
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+function pipeClick(sys) { /* hook: filter ESN list by system */ }
+
+/* auto-load on open */
+window.onload = () => setTimeout(applyFilter, 200);
+</script>
+</body>
+</html>
